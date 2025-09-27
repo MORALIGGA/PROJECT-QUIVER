@@ -61,19 +61,18 @@
   <body>
     <div class="container">
       <h1>Project Quiver – Earthquake Map</h1>
-      <p>Visualizing earthquakes from 2020 to 2025</p>
+      <p>Visualizing the most significant earthquakes each day (Jan 2020)</p>
       <div class="filter-row">
         <label for="yearSelect">Select Year:</label>
-        <select id="yearSelect">
-          <option value="all">Show All</option>
+        <select id="yearSelect" disabled>
           <option value="2020">2020</option>
-          <option value="2021">2021</option>
-          <option value="2022">2022</option>
-          <option value="2023">2023</option>
-          <option value="2024">2024</option>
-          <option value="2025">2025</option>
         </select>
-        <button id="filterBtn">Filter</button>
+        <label for="monthSelect">Select Month:</label>
+        <select id="monthSelect" disabled>
+          <option value="jan">January</option>
+        </select>
+        <button id="filterBtn" disabled>Filter</button>
+        <span style="color:#888;font-size:0.95em;">(Daily max, Jan 2020 only for demo)</span>
       </div>
       <div id="map"></div>
     </div>
@@ -90,16 +89,30 @@
         attribution: '© OpenStreetMap contributors'
       }).addTo(map);
 
-      // Example: Add a marker for Manila as a test
-      // L.marker([14.5995, 120.9842]).addTo(map)
-      //   .bindPopup('Manila, Philippines')
-      //   .openPopup();
-
-      // Placeholder for earthquake data loading and filtering logic
-      document.getElementById('filterBtn').addEventListener('click', function() {
-        var year = document.getElementById('yearSelect').value;
-        alert('Filtering for year: ' + year + '\n(You will hook this up to data soon!)');
-      });
+      // Load and plot the most significant earthquake per day for Jan 2020
+      fetch('jan2020.json')
+        .then(response => response.json())
+        .then(data => {
+          data.forEach(eq => {
+            L.circleMarker([eq.latitude, eq.longitude], {
+              radius: Math.max(eq.magnitude * 2, 4),
+              color: eq.magnitude >= 6 ? 'red' : eq.magnitude >= 5 ? 'orange' : eq.magnitude >= 4 ? 'gold' : 'blue',
+              weight: 2,
+              fillOpacity: 0.7
+            })
+            .addTo(map)
+            .bindPopup(
+              `<b>${eq.location}</b><br>
+              <b>Date:</b> ${eq.date}<br>
+              <b>Magnitude:</b> ${eq.magnitude}<br>
+              <b>Depth:</b> ${eq.depth} km`
+            );
+          });
+        })
+        .catch(e => {
+          document.getElementById('map').innerHTML = "<p style='color:red'>Could not load data file. Make sure <b>earthquakes_jan2020_daily_max.json</b> exists in your repo.</p>";
+        });
     </script>
   </body>
 </html>
+
