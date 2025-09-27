@@ -2,6 +2,8 @@
 <html>
   <head>
     <title>Project Quiver – Earthquake Map</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
       body {
         background: #fafbfc;
@@ -33,11 +35,6 @@
         border-radius: 8px;
         margin-bottom: 32px;
         background: #e3e8ef;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #6c757d;
-        font-size: 1.2em;
       }
       .footer {
         width: 100%;
@@ -49,7 +46,17 @@
         left: 0;
         bottom: 0;
       }
+      @media (max-width: 700px) {
+        .container {
+          padding: 8px;
+        }
+        #map {
+          height: 300px;
+        }
+      }
     </style>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   </head>
   <body>
     <div class="container">
@@ -68,13 +75,31 @@
         </select>
         <button id="filterBtn">Filter</button>
       </div>
-      <div id="map">
-        <!-- Map will go here -->
-        [MAP PLACEHOLDER]
-      </div>
+      <div id="map"></div>
     </div>
     <div class="footer">
       &copy; 2025 Project Quiver. All rights reserved.
     </div>
+    <script>
+      // Initialize the map centered over the Philippines
+      var map = L.map('map').setView([12.8797, 121.7740], 5);
+
+      // Add the OpenStreetMap tile layer
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(map);
+
+      // You can add a marker to test
+      // L.marker([14.5995, 120.9842]).addTo(map)
+      //   .bindPopup('Manila, Philippines')
+      //   .openPopup();
+
+      // Placeholder for earthquake data loading and filtering logic
+      document.getElementById('filterBtn').addEventListener('click', function() {
+        var year = document.getElementById('yearSelect').value;
+        alert('Filtering for year: ' + year + '\n(You will hook this up to data soon!)');
+      });
+    </script>
   </body>
 </html>
