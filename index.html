@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project QUIVER – Earthquake Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #8b4513;
+            --primary-dark: #5d2f09;
+            --primary-light: #a0613d;
+            --secondary: #2c1810;
+            --background: #fefefe;
+            --surface: #ffffff;
+            --surface-hover: #f9f9f9;
+            --text-primary: #2c1810;
+            --text-secondary: #5d4037;
+            --text-muted: #795548;
+            --border: #e0e0e0;
+            --border-light: #f5f5f5;
+            --accent-orange: #ff6b35;
+            --accent-yellow: #ffa726;
+            --accent-blue: #42a5f5;
+            --accent-green: #66bb6a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Source Sans Pro', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 2.5rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+            letter-spacing: -0.02em;
+        }
+
+        .header .acronym {
+            font-size: 1rem;
+            opacity: 0.85;
+            font-weight: 400;
+            margin-bottom: 0.5rem;
+            font-style: italic;
+        }
+
+        .header .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-bottom: 2rem;
+            font-weight: 500;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            padding: 1.5rem 2rem;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .control-group label {
+            font-size: 0.95rem;
+            font-weight: 600;
+            opacity: 0.95;
+            min-width: 55px;
+        }
+
+        select, button {
+            padding: 0.65rem 1.25rem;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.95);
+            color: var(--text-primary);
+            font-weight: 500;
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+
+        select:hover, select:focus {
+            background: white;
+            border-color: rgba(255, 255, 255, 0.4);
+            outline: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        button {
+            background: var(--secondary);
+            color: white;
+            border-color: var(--secondary);
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        button:hover {
+            background: #1a0e08;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(44, 24, 16, 0.25);
+        }
+
+        .status-indicator {
+            background: rgba(102, 187, 106, 0.15);
+            color: var(--accent-green);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border: 1px solid rgba(102, 187, 106, 0.3);
+        }
+
+        .main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            padding: 1.5rem;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary-light);
+        }
+
+        .stat-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+            line-height: 1;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .map-section {
+            background: var(--surface);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+
+        .map-header {
+            background: var(--surface-hover);
+            border-bottom: 1px solid var(--border-light);
+            padding: 1rem 1.5rem;
+        }
+
+        .map-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        #map {
+            width: 100%;
+            height: 550px;
+            border: none;
+        }
+
+        .info-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        .info-panel h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+        }
+
+        .info-panel p {
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin-bottom: 1rem;
+        }
+
+        .phivolcs-note {
+            background: #f3f4f6;
+            border-left: 4px solid var(--primary);
+            padding: 1rem;
+            border-radius: 0 6px 6px 0;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* Enhanced popup styling */
+        .leaflet-popup-content-wrapper {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+            border: 1px solid var(--border);
+        }
+
+        .leaflet-popup-content {
+            margin: 0;
+            font-family: 'Source Sans Pro', sans-serif;
+        }
+
+        .earthquake-popup {
+            padding: 1.25rem;
+            min-width: 280px;
+        }
+
+        .earthquake-popup h4 {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin: 0 0 1rem 0;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid var(--border-light);
+        }
+
+        .popup-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 0.6rem 0;
+            font-size: 0.95rem;
+        }
+
+        .popup-label {
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .popup-value {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .location-text {
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--border-light);
+            color: var(--text-secondary);
+            line-height: 1.4;
+            font-size: 0.9rem;
+        }
+
+        /* Custom legend - PHIVOLCS based */
+        .custom-legend {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+            font-size: 0.85rem;
+            max-width: 200px;
+        }
+
+        .legend-title {
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .legend-subtitle {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+            font-style: italic;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            margin: 0.5rem 0;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        .legend-text {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .error {
+            background: rgba(255, 107, 53, 0.1);
+            border: 1px solid rgba(255, 107, 53, 0.3);
+            color: #d84315;
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+            margin: 1rem 0;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem;
+            color: var(--text-muted);
+        }
+
+        .loading::before {
+            content: '';
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 0.75rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Enhanced Leaflet controls */
+        .leaflet-control-zoom a {
+            background: var(--surface) !important;
+            color: var(--text-primary) !important;
+            border: 1px solid var(--border) !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+        }
+
+        .leaflet-control-zoom a:hover {
+            background: var(--surface-hover) !important;
+            border-color: var(--primary-light) !important;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                padding: 2rem 0;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+                gap: 1rem;
+                padding: 1.25rem;
+            }
+            
+            .control-group {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .main {
+                padding: 1rem;
+            }
+            
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
+            }
+            
+            #map {
+                height: 450px;
+            }
+            
+            .earthquake-popup {
+                min-width: 250px;
+                padding: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats {
+                grid-template-columns: 1fr;
+            }
+            
+            #map {
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1>Project QUIVER – Earthquake Map</h1>
+            <div class="acronym">Quake Understanding through Interactive Visualization and Earthquake Research</div>
+            <p class="subtitle">Daily Maximum Seismic Events in the Philippines</p>
+            <div class="controls">
+                <div class="control-group">
+                    <label>Year:</label>
+                    <select id="yearSelect">
+                        <option value="2020">2020</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Month:</label>
+                    <select id="monthSelect">
+                        <option value="JAN">January</option>
+                        <option value="FEB">February</option>
+                        <option value="MAR">March</option>
+                        <option value="APR">April</option>
+                    </select>
+                </div>
+                <button id="loadBtn">Load Data</button>
+                <div id="status" class="status-indicator">Ready</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="main">
+        <div class="stats" id="statsContainer">
+            <div class="stat-card">
+                <div class="stat-value" id="maxMagnitude">0.0</div>
+                <div class="stat-label">Max Magnitude</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avgMagnitude">0.0</div>
+                <div class="stat-label">Avg Magnitude</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="maxDepth">0</div>
+                <div class="stat-label">Max Depth (km)</div>
+            </div>
+        </div>
+
+        <div class="map-section">
+            <div class="map-header">
+                <h3 class="map-title">Interactive Seismic Activity Map</h3>
+            </div>
+            <div id="map"></div>
+        </div>
+
+        <div class="info-panel">
+            <h3>Data Source & Classification</h3>
+            <p>
+                This visualization displays the highest magnitude earthquake recorded each calendar day during the selected month, 
+                based on seismic monitoring data from the Philippines region. Each marker represents the most significant seismic event 
+                for that specific date in Philippine Standard Time.
+            </p>
+            <div class="phivolcs-note">
+                <strong>Classification System:</strong> Magnitude ranges are based on general seismological standards. 
+                The Philippines uses the PHIVOLCS Earthquake Intensity Scale (PEIS) for intensity measurements, 
+                developed specifically for local geological conditions by the Philippine Institute of Volcanology and Seismology.
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Initialize map
+        const map = L.map('map').setView([12.8797, 121.7740], 6);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Add custom legend with PHIVOLCS context
+        const legend = L.control({position: 'bottomright'});
+        legend.onAdd = function(map) {
+            const div = L.DomUtil.create('div', 'custom-legend');
+            div.innerHTML = `
+                <div class="legend-title">Magnitude Range</div>
+                <div class="legend-subtitle">General Classification</div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: #8b4513;"></div>
+                    <span class="legend-text">≥ 6.0</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: #ff6b35;"></div>
+                    <span class="legend-text">5.0-5.9</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: #ffa726;"></div>
+                    <span class="legend-text">4.0-4.9</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: #42a5f5;"></div>
+                    <span class="legend-text">< 4.0</span>
+                </div>
+            `;
+            return div;
+        };
+        legend.addTo(map);
+
+        let markers = [];
+        
+        function updateStatus(message, type = 'ready') {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = 'status-indicator';
+        }
+
+        function updateStats(data) {
+            if (!data || data.length === 0) {
+                document.getElementById('maxMagnitude').textContent = '0.0';
+                document.getElementById('avgMagnitude').textContent = '0.0';
+                document.getElementById('maxDepth').textContent = '0';
+                return;
+            }
+
+            const magnitudes = data.map(eq => parseFloat(eq.magnitude) || 0);
+            const depths = data.map(eq => parseFloat(eq.depth) || 0);
+
+            document.getElementById('maxMagnitude').textContent = Math.max(...magnitudes).toFixed(1);
+            document.getElementById('avgMagnitude').textContent = (magnitudes.reduce((a, b) => a + b, 0) / magnitudes.length).toFixed(1);
+            document.getElementById('maxDepth').textContent = Math.max(...depths).toFixed(0);
+        }
+
+        function clearMarkers() {
+            markers.forEach(marker => map.removeLayer(marker));
+            markers = [];
+        }
+
+        function getColor(magnitude) {
+            if (magnitude >= 6) return '#8b4513';  // Brown
+            if (magnitude >= 5) return '#ff6b35';  // Orange-red
+            if (magnitude >= 4) return '#ffa726';  // Orange
+            return '#42a5f5';  // Blue
+        }
+
+        async function loadData() {
+            const month = document.getElementById('monthSelect').value;
+            const filename = `${month}2020.json`;
+            
+            updateStatus('Loading...');
+            clearMarkers();
+            
+            try {
+                const response = await fetch(filename);
+                
+                if (!response.ok) {
+                    throw new Error(`File ${filename} not found`);
+                }
+                
+                const data = await response.json();
+                
+                if (!Array.isArray(data) || data.length === 0) {
+                    throw new Error('No earthquake data found');
+                }
+                
+                // Update statistics
+                updateStats(data);
+                
+                // Plot earthquakes
+                data.forEach(eq => {
+                    const lat = parseFloat(eq.latitude);
+                    const lng = parseFloat(eq.longitude);
+                    const mag = parseFloat(eq.magnitude) || 0;
+                    
+                    if (!lat || !lng) return;
+                    
+                    const marker = L.circleMarker([lat, lng], {
+                        radius: Math.max(mag * 2.5, 6),
+                        fillColor: getColor(mag),
+                        color: '#ffffff',
+                        weight: 2,
+                        fillOpacity: 0.9
+                    });
+                    
+                    const popupContent = `
+                        <div class="earthquake-popup">
+                            <h4>Magnitude ${mag} Earthquake</h4>
+                            <div class="popup-row">
+                                <span class="popup-label">Date:</span>
+                                <span class="popup-value">${eq.date}</span>
+                            </div>
+                            <div class="popup-row">
+                                <span class="popup-label">Depth:</span>
+                                <span class="popup-value">${eq.depth} km</span>
+                            </div>
+                            <div class="popup-row">
+                                <span class="popup-label">Coordinates:</span>
+                                <span class="popup-value">${lat.toFixed(2)}°N, ${lng.toFixed(2)}°E</span>
+                            </div>
+                            <div class="location-text">
+                                <strong>Location:</strong><br>
+                                ${eq.location}
+                            </div>
+                        </div>
+                    `;
+                    
+                    marker.bindPopup(popupContent);
+                    marker.addTo(map);
+                    markers.push(marker);
+                });
+                
+                // Fit map to markers
+                if (markers.length > 0) {
+                    const group = new L.featureGroup(markers);
+                    map.fitBounds(group.getBounds().pad(0.1));
+                }
+                
+                updateStatus(`${data.length} events loaded`);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                updateStatus('Error loading data');
+                updateStats([]);
+                document.getElementById('map').innerHTML = `
+                    <div class="error">
+                        <h3>Unable to load ${filename}</h3>
+                        <p>Please ensure the data file exists and is properly formatted.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Event listeners
+        document.getElementById('loadBtn').addEventListener('click', loadData);
+        document.getElementById('monthSelect').addEventListener('change', loadData);
+        
+        // Load January data on start
+        document.addEventListener('DOMContentLoaded', () => {
+            updateStatus('Initializing...');
+            setTimeout(loadData, 300);
+        });
+    </script>
+</body>
+</html>
