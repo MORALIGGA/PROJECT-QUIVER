@@ -292,7 +292,6 @@
             color: var(--text-secondary);
         }
 
-        /* Enhanced popup styling */
         .leaflet-popup-content-wrapper {
             background: white;
             border-radius: 12px;
@@ -346,7 +345,6 @@
             font-size: 0.9rem;
         }
 
-        /* Custom legend */
         .custom-legend {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -428,7 +426,6 @@
             to { transform: rotate(360deg); }
         }
 
-        /* Enhanced Leaflet controls */
         .leaflet-control-zoom a {
             background: var(--surface) !important;
             color: var(--text-primary) !important;
@@ -442,7 +439,6 @@
             border-color: var(--primary-light) !important;
         }
 
-        /* Responsive */
         @media (max-width: 768px) {
             .header {
                 padding: 2rem 0;
@@ -604,7 +600,6 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Initialize map
         const map = L.map('map').setView([12.8797, 121.7740], 6);
         
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -612,7 +607,6 @@
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
-        // Add custom legend
         const legend = L.control({position: 'bottomright'});
         legend.onAdd = function(map) {
             const div = L.DomUtil.create('div', 'custom-legend');
@@ -664,10 +658,10 @@
         }
 
         function getColor(magnitude) {
-            if (magnitude >= 6) return '#1e3a8a';  // Navy blue
-            if (magnitude >= 5) return '#f97316';  // Orange
-            if (magnitude >= 4) return '#f59e0b';  // Amber
-            return '#3b82f6';  // Light blue
+            if (magnitude >= 6) return '#1e3a8a';
+            if (magnitude >= 5) return '#f97316';
+            if (magnitude >= 4) return '#f59e0b';
+            return '#3b82f6';
         }
 
         async function loadData() {
@@ -677,25 +671,23 @@
             clearMarkers();
             
             try {
-                console.log(`🔍 Loading: ${filename}`);
+                console.log(`Loading ${filename}...`);
                 const response = await fetch(filename);
                 
                 if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${filename} not found`);
+                    throw new Error(`HTTP ${response.status} - File not found: ${filename}`);
                 }
                 
                 const data = await response.json();
                 
                 if (!Array.isArray(data) || data.length === 0) {
-                    throw new Error('No earthquake data found in file');
+                    throw new Error('No earthquake data found');
                 }
                 
-                console.log(`✅ Successfully loaded ${data.length} earthquake records for ${month} 2020`);
+                console.log(`✅ Successfully loaded ${data.length} earthquake records`);
                 
-                // Update statistics
                 updateStats(data);
                 
-                // Plot earthquakes
                 data.forEach(eq => {
                     const lat = parseFloat(eq.latitude);
                     const lng = parseFloat(eq.longitude);
@@ -738,45 +730,32 @@
                     markers.push(marker);
                 });
                 
-                // Fit map to markers
                 if (markers.length > 0) {
                     const group = new L.featureGroup(markers);
                     map.fitBounds(group.getBounds().pad(0.1));
                 }
                 
             } catch (error) {
-                console.error('❌ Error loading data:', error);
+                console.error('❌ Error:', error);
                 updateStats([]);
                 
-                // Show detailed error information
                 document.getElementById('map').innerHTML = `
                     <div class="error">
-                        <h3>⚠️ Unable to load ${filename}</h3>
+                        <h3>Cannot load ${filename}</h3>
                         <p><strong>Error:</strong> ${error.message}</p>
-                        <p><strong>Expected URL:</strong> ${window.location.href}${filename}</p>
-                        <p><strong>Solution:</strong> Ensure ${filename} is uploaded to your repository root</p>
-                        <br>
-                        <p><em>Check your browser's developer console for more details</em></p>
+                        <p><strong>Expected files:</strong> JAN2020.json, FEB2020.json, MAR2020.json, APR2020.json, MAY2020.json, JUN2020.json, JUL2020.json, AUG2020.json, SEP2020.json, OCT2020.json, NOV2020.json, DEC2020.json</p>
+                        <p><em>Make sure all JSON files are uploaded to your repository root.</em></p>
                     </div>
                 `;
             }
         }
 
-        // Event listener for month changes
-        document.getElementById('monthSelect').addEventListener('change', function() {
-            console.log(`🔄 Month changed to: ${this.value}`);
-            loadData();
-        });
+        document.getElementById('monthSelect').addEventListener('change', loadData);
         
-        // Load January data on page start
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('🌟 Page loaded - initializing QUIVER earthquake visualization');
-            console.log('📅 Loading initial data for January 2020...');
-            setTimeout(loadData, 500);
+            console.log('QUIVER Earthquake Visualization - Loading...');
+            setTimeout(loadData, 300);
         });
-
-        // Log available months for debugging
-        console.log('🗓️ Available months:', ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']);
     </script>
 </body>
 </html>
